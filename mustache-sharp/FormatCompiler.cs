@@ -53,6 +53,8 @@ namespace Mustache
         /// </summary>
         public event EventHandler<VariableFoundEventArgs> VariableFound;
 
+		public bool StripComments { get; set; }
+
         /// <summary>
         /// Registers the given tag definition with the parser.
         /// </summary>
@@ -105,6 +107,7 @@ namespace Mustache
                 List<string> matches = new List<string>();
                 matches.Add(getKeyRegex());
                 matches.Add(getCommentTagRegex());
+				matches.Add(getCommandRegex());
                 foreach (string closingTag in definition.ClosingTags)
                 {
                     matches.Add(getClosingTagRegex(closingTag));
@@ -148,21 +151,37 @@ namespace Mustache
             return @"((?<key>@?" + RegexHelper.CompoundKey + @")(,(?<alignment>(\+|-)?[\d]+))?(:(?<format>.*?))?)";
         }
 
+	    private static string getCommandRegex()
+	    {
+			return @"((?<command>[_\w][_\w\d]*))\|((?<params>.*?)?)";
+	    }
+
         private static string getTagRegex(TagDefinition definition)
         {
             StringBuilder regexBuilder = new StringBuilder();
             regexBuilder.Append(@"(?<open>(#(?<name>");
             regexBuilder.Append(definition.Name);
             regexBuilder.Append(@")");
-            foreach (TagParameter parameter in definition.Parameters)
+            var customRegex = definition.CustomTagExpression();
+            if (!string.IsNullOrWhiteSpace(customRegex))
             {
                 regexBuilder.Append(@"(\s+?");
                 regexBuilder.Append(@"(?<argument>(@?");
-                regexBuilder.Append(RegexHelper.CompoundKey);
+                regexBuilder.Append(customRegex);
                 regexBuilder.Append(@")))");
-                if (!parameter.IsRequired)
+            }
+            else
+            {
+                foreach (TagParameter parameter in definition.Parameters)
                 {
-                    regexBuilder.Append("?");
+                    regexBuilder.Append(@"(\s+?");
+                    regexBuilder.Append(@"(?<argument>(@?");
+                    regexBuilder.Append(RegexHelper.CompoundKey);
+                    regexBuilder.Append(@")))");
+                    if (!parameter.IsRequired)
+                    {
+                        regexBuilder.Append("?");
+                    }
                 }
             }
             regexBuilder.Append(@"\s*?))");
@@ -282,6 +301,27 @@ namespace Mustache
                     generator.AddGenerator(new StaticGenerator(leading));
                     formatIndex = match.Index + match.Length;
                 }
+				else if (match.Groups["command"].Success)
+				{
+					var parameters = match.Groups["params"].Value ?? "";
+					var args = new ArgumentCollection();
+					int index = 0;
+					parameters
+						.Split(new[] {','})
+						.Select(a => a.Trim())
+						.ToList()
+						.ForEach(a => args.AddArgument(new TagParameter((index++).ToString()), a));
+
+					TagDefinition definition;
+					_tagLookup.TryGetValue(match.Groups["command"].Value, out definition);
+
+					if (definition == null)
+						throw new FormatException(string.Format(Resources.MissingCommand, match.Groups["command"].Value));
+
+					generator.AddGenerator(new StaticGenerator(leading));
+					generator.AddGenerator(new InlineGenerator(definition, args));
+					formatIndex = match.Index + match.Length;
+				}
                 else if (match.Groups["unknown"].Success)
                 {
                     string tagName = match.Value;

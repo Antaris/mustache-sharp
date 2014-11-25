@@ -1300,6 +1300,18 @@ Your order total was: $7.50";
             compiler.Compile("{{#split Names}}");
         }
 
+        /// <summary>
+        /// If an unknown tag is encountered, an exception should be thrown.
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(FormatException))]
+        public void TestCompile_ScriptTag()
+        {
+            FormatCompiler compiler = new FormatCompiler();
+            compiler.RegisterTag(new ScriptTagDefinition(), true);
+            compiler.Compile("{{#script \"/path/to/script.js\"}}");
+        }
+
         #endregion
 
         #region Context Variables
@@ -1364,5 +1376,51 @@ Odd
         }
 
         #endregion
+    }
+
+    public class ScriptTagDefinition : InlineTagDefinition
+    {
+        public static List<string> __scripts = new List<string>();
+
+        /// <summary>
+        /// Initialises a new instance of <see cref="ScriptTagDefinition"/>
+        /// </summary>
+        public ScriptTagDefinition() : base("script") { }
+
+        /// <summary>
+        /// Gets the set of parameters for this tag.
+        /// </summary>
+        /// <returns>The set of parameters.</returns>
+        protected override IEnumerable<TagParameter> GetParameters()
+        {
+            yield return new TagParameter("path");
+        }
+
+        /// <summary>
+        /// Gets the
+        /// </summary>
+        /// <param name="writer">The text writer.</param>
+        /// <param name="arguments">The set of input arguments.</param>
+        /// <param name="context">The scope context.</param>
+        public override void GetText(TextWriter writer, Dictionary<string, object> arguments, Scope context)
+        {
+            var scripts = GetScripts();
+            var script = arguments["path"] as string;
+
+            if (scripts.All(s => !s.Equals(script, StringComparison.OrdinalIgnoreCase)))
+            {
+                // Add the script as it hasn't already been added.
+                scripts.Add(script);
+            }
+        }
+
+        /// <summary>
+        /// Gets the scripts list from the HTTP context.
+        /// </summary>
+        /// <returns>The scripts list.</returns>
+        private List<string> GetScripts()
+        {
+            return __scripts;
+        }
     }
 }

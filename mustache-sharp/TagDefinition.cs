@@ -5,6 +5,8 @@ using System.IO;
 
 namespace Mustache
 {
+    using System.Text.RegularExpressions;
+
     /// <summary>
     /// Defines the attributes of a custom tag.
     /// </summary>
@@ -34,6 +36,11 @@ namespace Mustache
                 throw new ArgumentException(Resources.BlankTagName, "tagName");
             }
             _tagName = tagName;
+        }
+
+        public virtual string CustomTagExpression()
+        {
+            return null;
         }
 
         /// <summary>

@@ -19,6 +19,11 @@ namespace Mustache
             _argumentLookup = new Dictionary<TagParameter, string>();
         }
 
+	    internal Dictionary<TagParameter, string> LookupDictionary
+	    {
+		    get { return _argumentLookup; }
+	    }
+
         /// <summary>
         /// Associates the given parameter to the key placeholder.
         /// </summary>

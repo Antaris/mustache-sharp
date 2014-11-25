@@ -80,6 +80,10 @@ namespace Mustache
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">A key with the given name could not be found.</exception>
         internal object Find(string name)
         {
+            if (name.StartsWith("\""))
+                // We're working with a quoted string, so return the value directly.
+                return name.TrimStart('\"').TrimEnd('\"');
+
             SearchResults results = tryFind(name);
             if (results.Found)
             {

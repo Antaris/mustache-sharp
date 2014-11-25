@@ -30,10 +30,19 @@ namespace Mustache
             {
                 arguments = _arguments.GetArgumentKeyNames();   
             }
+			else if (_definition is CommandTagDefinition)
+			{
+				arguments = new Dictionary<string, object>();
+				foreach (var pair in _arguments.LookupDictionary)
+				{
+					arguments.Add(pair.Key.Name, pair.Value);
+				}
+			}
             else
             {
                 arguments = _arguments.GetArguments(scope, context);
             }            
+
             _definition.GetText(writer, arguments, context);
         }
     }

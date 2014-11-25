@@ -14,7 +14,7 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-	        const string html = @"{{Form.Name}} {{#! Hello }}";
+	        const string html = @"{{Form.Name}} {{#! Hello }} {{url|Homepage}}";
 
             var compiler = new FormatCompiler();
             compiler.RegisterTag(new CommandTagDefinition("url", Url), true);

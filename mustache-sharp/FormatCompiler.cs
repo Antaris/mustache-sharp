@@ -317,7 +317,7 @@ namespace Mustache
 						.Split(new[] {','})
 						.Select(a => a.Trim())
 						.ToList()
-						.ForEach(a => args.AddArgument(new TagParameter((index++).ToString()), a));
+						.ForEach(a => args.AddArgument(new TagParameter((index++).ToString()), new StringArgument(a)));
 
 					TagDefinition definition;
 					_tagLookup.TryGetValue(match.Groups["command"].Value, out definition);
@@ -325,7 +325,7 @@ namespace Mustache
 					if (definition == null)
 						throw new FormatException(string.Format(Resources.MissingCommand, match.Groups["command"].Value));
 
-					generator.AddGenerator(new StaticGenerator(leading));
+					generator.AddGenerator(new StaticGenerator(leading, RemoveNewLines));
 					generator.AddGenerator(new InlineGenerator(definition, args));
 					formatIndex = match.Index + match.Length;
 				}

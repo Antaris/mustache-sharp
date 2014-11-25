@@ -43,7 +43,7 @@
 		public override void GetText(TextWriter writer, Dictionary<string, object> arguments, Scope context)
 		{
 			if (_evaluator != null)
-				writer.Write(_evaluator(_command, arguments.Values.Cast<string>().ToArray()));
+				writer.Write(_evaluator(_command, arguments.Values.Cast<IArgument>().Select(a => a.GetValue(context, context) as string).ToArray()));
 		}
 	}
 }

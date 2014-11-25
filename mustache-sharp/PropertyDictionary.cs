@@ -7,12 +7,14 @@ using System.Reflection;
 
 namespace Mustache
 {
-    /// <summary>
+	using System.Collections.Concurrent;
+
+	/// <summary>
     /// Provides methods for creating instances of PropertyDictionary.
     /// </summary>
     internal sealed class PropertyDictionary : IDictionary<string, object>
     {
-        private static readonly Dictionary<Type, Dictionary<string, Func<object, object>>> _cache = new Dictionary<Type, Dictionary<string, Func<object, object>>>();
+		private static readonly ConcurrentDictionary<Type, Dictionary<string, Func<object, object>>> _cache = new ConcurrentDictionary<Type, Dictionary<string, Func<object, object>>>();
 
         private readonly object _instance;
         private readonly Dictionary<string, Func<object, object>> _typeCache;
@@ -30,38 +32,33 @@ namespace Mustache
             }
             else
             {
-                lock (_cache)
-                {
-                    _typeCache = getCacheType(_instance);
-                }
+                _typeCache = getCacheType(_instance);
             }
         }
 
         private static Dictionary<string, Func<object, object>> getCacheType(object instance)
         {
             Type type = instance.GetType();
-            Dictionary<string, Func<object, object>> typeCache;
-            if (!_cache.TryGetValue(type, out typeCache))
-            {
-                typeCache = new Dictionary<string, Func<object, object>>();
-                
-                BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy;
-                
-                var properties = getMembers(type, type.GetProperties(flags).Where(p => !p.IsSpecialName));
-                foreach (PropertyInfo propertyInfo in properties)
-                {
-                    typeCache.Add(propertyInfo.Name, i => propertyInfo.GetValue(i, null));
-                }
 
-                var fields = getMembers(type, type.GetFields(flags).Where(f => !f.IsSpecialName));
-                foreach (FieldInfo fieldInfo in fields)
-                {
-                    typeCache.Add(fieldInfo.Name, i => fieldInfo.GetValue(i));
-                }
-                
-                _cache.Add(type, typeCache);
-            }
-            return typeCache;
+	        return _cache.GetOrAdd(type, t =>
+	        {
+		        var typeCache = new Dictionary<string, Func<object, object>>();
+
+		        BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy;
+
+		        var properties = getMembers(type, type.GetProperties(flags).Where(p => !p.IsSpecialName));
+		        foreach (PropertyInfo propertyInfo in properties)
+		        {
+			        typeCache.Add(propertyInfo.Name, i => propertyInfo.GetValue(i, null));
+		        }
+
+		        var fields = getMembers(type, type.GetFields(flags).Where(f => !f.IsSpecialName));
+		        foreach (FieldInfo fieldInfo in fields)
+		        {
+			        typeCache.Add(fieldInfo.Name, i => fieldInfo.GetValue(i));
+		        }
+		        return typeCache;
+	        });
         }
 
         private static IEnumerable<TMember> getMembers<TMember>(Type type, IEnumerable<TMember> members)

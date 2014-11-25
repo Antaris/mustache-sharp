@@ -19,7 +19,7 @@ namespace Mustache
             _argumentLookup = new Dictionary<TagParameter, IArgument>();
         }
 
-	    internal Dictionary<TagParameter, string> LookupDictionary
+	    internal Dictionary<TagParameter, IArgument> LookupDictionary
 	    {
 		    get { return _argumentLookup; }
 	    }
